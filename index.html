@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Routines</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Routines</h1>
+      <p id="today"></p>
+    </header>
+
+    <form id="add-form">
+      <input id="add-input" type="text" placeholder="Add a routine, e.g. Morning walk" maxlength="80" autocomplete="off" required>
+      <button type="submit">Add</button>
+    </form>
+
+    <p id="progress"></p>
+    <ul id="list"></ul>
+    <p id="empty" hidden>No routines yet. Add one above.</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
