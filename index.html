@@ -4,111 +4,226 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Routines</title>
-  <meta name="description" content="A calm, minimal tracker for your daily routines.">
-  <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#151413" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="A simple, beautiful tracker for your daily routines.">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Routines">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="app">
-    <header class="top">
-      <div>
-        <p class="eyebrow" id="date"></p>
-        <h1 id="title"></h1>
-      </div>
-      <div class="ring" id="ring" role="img">
-        <svg viewBox="0 0 64 64" aria-hidden="true">
-          <circle class="ring-track" cx="32" cy="32" r="28"></circle>
-          <circle class="ring-fill" id="ring-fill" cx="32" cy="32" r="28"></circle>
-        </svg>
-        <span id="ring-label"></span>
-      </div>
-    </header>
-
-    <div class="week-head">
-      <span id="week-label">This week</span>
-      <div class="week-nav">
-        <button type="button" class="pill" id="today-btn" hidden>Today</button>
-        <button type="button" class="nav-btn" id="prev-week" aria-label="Previous week">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
-        </button>
-        <button type="button" class="nav-btn" id="next-week" aria-label="Next week">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
-      </div>
-    </div>
-    <nav class="week" id="week" aria-label="Choose a day"></nav>
-
-    <p class="status" id="status"></p>
-
-    <ul class="list" id="list"></ul>
-
-    <section class="others" id="others-wrap" hidden>
-      <p class="section-label">Not on this day</p>
-      <ul class="list" id="others"></ul>
-    </section>
-
-    <section class="empty" id="empty" hidden>
-      <p class="empty-title">Start with one <em>small</em> thing.</p>
-      <p class="empty-sub">Tap a suggestion or write your own below.</p>
-      <div class="chips" id="chips"></div>
-    </section>
-
-    <footer class="foot">
-      <button type="button" id="export">Export</button>
-      <span aria-hidden="true">·</span>
-      <label>Import<input type="file" id="import" accept="application/json" hidden></label>
-    </footer>
-  </main>
-
-  <form class="composer" id="add-form" autocomplete="off">
-    <div class="composer-days">
-      <p class="section-label">Repeats on</p>
-      <div class="daypick" id="add-days" role="group" aria-label="Repeats on"></div>
-    </div>
-    <div class="composer-row">
-      <input id="add-input" type="text" placeholder="New routine…" maxlength="60" aria-label="New routine" required>
-      <button type="submit" class="add-btn" aria-label="Add routine">
+  <header class="navbar" id="navbar">
+    <div class="navbar-inner">
+      <button type="button" class="bar-btn" id="nav-today" hidden>‹ Today</button>
+      <span class="nav-title" id="nav-title">Today</span>
+      <button type="button" class="nav-icon" id="add-btn" aria-label="New routine">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
-  </form>
+  </header>
 
-  <dialog class="sheet" id="sheet" aria-labelledby="sheet-name">
+  <main class="app">
+    <!-- Today -->
+    <section class="tab" id="tab-today">
+      <div class="large-head">
+        <p class="eyebrow" id="date"></p>
+        <h1 id="title">Today</h1>
+        <p class="greet" id="greet"></p>
+      </div>
+
+      <div class="card summary">
+        <div class="ring" id="ring" role="img">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#5be37d"/>
+                <stop offset="1" stop-color="#21b04b"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-track" cx="32" cy="32" r="27"></circle>
+            <circle class="ring-fill" id="ring-fill" cx="32" cy="32" r="27"></circle>
+          </svg>
+          <span id="ring-label"></span>
+        </div>
+        <div class="summary-text">
+          <p class="sum-big" id="sum-big"></p>
+          <p class="sum-sub" id="sum-sub"></p>
+          <p class="sum-streak" id="sum-streak"></p>
+        </div>
+      </div>
+
+      <div class="week-head">
+        <span id="week-label">This week</span>
+        <div class="week-nav">
+          <button type="button" class="nav-btn" id="prev-week" aria-label="Previous week">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <button type="button" class="nav-btn" id="next-week" aria-label="Next week">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <nav class="week card" id="week" aria-label="Choose a day"></nav>
+
+      <div id="groups"></div>
+
+      <div id="others-wrap" hidden>
+        <p class="group-title">Not on this day</p>
+        <div class="group" id="others"></div>
+      </div>
+
+      <section class="empty" id="empty" hidden>
+        <div class="empty-emoji">🌱</div>
+        <p class="empty-title">Start with one small thing</p>
+        <p class="empty-sub">Tap a suggestion, or + to create your own.</p>
+        <div class="chips" id="chips"></div>
+      </section>
+    </section>
+
+    <!-- Stats -->
+    <section class="tab" id="tab-stats" hidden>
+      <div class="large-head">
+        <p class="eyebrow">Your progress</p>
+        <h1>Statistics</h1>
+      </div>
+
+      <div id="stats-content">
+        <div class="tiles" id="tiles"></div>
+
+        <p class="group-title">Completion</p>
+        <div class="card chart-card">
+          <div class="segmented" id="range-seg"></div>
+          <div class="chart-summary" id="chart-summary"></div>
+          <div class="bars" id="bars"></div>
+        </div>
+
+        <p class="group-title">Last 17 weeks</p>
+        <div class="card">
+          <div class="heatmap" id="heatmap"></div>
+          <div class="legend">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</div>
+        </div>
+
+        <p class="group-title">By weekday · last 12 weeks</p>
+        <div class="card" id="weekday-card"></div>
+
+        <p class="group-title">Routines · last 30 days</p>
+        <div class="group" id="routine-stats"></div>
+      </div>
+
+      <section class="empty" id="stats-empty" hidden>
+        <div class="empty-emoji">📊</div>
+        <p class="empty-title">No stats yet</p>
+        <p class="empty-sub">Add a routine and check it off to see your progress here.</p>
+      </section>
+    </section>
+
+    <!-- Settings -->
+    <section class="tab" id="tab-settings" hidden>
+      <div class="large-head">
+        <h1>Settings</h1>
+      </div>
+
+      <p class="group-title">Appearance</p>
+      <div class="group">
+        <div class="cell stack"><span>🎨 Theme</span><div class="segmented" id="theme-seg"></div></div>
+        <div class="cell stack"><span>📅 Week starts on</span><div class="segmented" id="weekstart-seg"></div></div>
+      </div>
+
+      <p class="group-title">Feedback</p>
+      <div class="group">
+        <label class="cell"><span class="grow">🎉 Celebrate when all done</span><input type="checkbox" class="switch" id="set-confetti"></label>
+        <label class="cell"><span class="grow">📳 Haptics</span><input type="checkbox" class="switch" id="set-haptics"></label>
+      </div>
+
+      <p class="group-title">Data</p>
+      <div class="group">
+        <button type="button" class="cell link" id="export">📤 Export backup</button>
+        <label class="cell link">📥 Import backup<input type="file" id="import" accept="application/json" hidden></label>
+        <button type="button" class="cell link danger" id="reset">🗑️ Erase all data</button>
+      </div>
+      <p class="footnote">Your routines are stored only on this device. Export a backup to move them to another phone or browser.</p>
+      <p class="footnote center">Routines · made with 💚</p>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" data-tab="today" class="active">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/></svg>
+      <span>Today</span>
+    </button>
+    <button type="button" data-tab="stats">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M10 20V6M15 20v-9M20 20V4"/></svg>
+      <span>Stats</span>
+    </button>
+    <button type="button" data-tab="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
     <form id="sheet-form" autocomplete="off">
-      <input class="sheet-name" id="sheet-name" type="text" maxlength="60" aria-label="Routine name" required>
+      <div class="sheet-bar">
+        <span class="grabber" aria-hidden="true"></span>
+        <button type="button" class="bar-btn" id="sheet-cancel">Cancel</button>
+        <span class="bar-title" id="sheet-title">New Routine</span>
+        <button type="submit" class="bar-btn bold" id="sheet-save">Add</button>
+      </div>
 
-      <p class="section-label">Repeats on</p>
-      <div class="daypick" id="sheet-days" role="group" aria-label="Repeats on"></div>
+      <div class="sheet-body">
+        <section class="hero" id="hero">
+          <div class="hero-emoji" id="hero-emoji"></div>
+          <div class="mini-stats" id="mini-stats"></div>
+          <div class="card">
+            <div class="heatmap mini" id="mini-heat"></div>
+          </div>
+        </section>
 
-      <section id="status-section">
-        <p class="section-label" id="status-label">Today</p>
-        <div class="status-pick" id="status-pick" role="group" aria-labelledby="status-label"></div>
-      </section>
+        <section id="status-section">
+          <p class="group-title" id="status-label">Today</p>
+          <div class="segmented status-seg" id="status-seg"></div>
+        </section>
 
-      <section id="move-section">
-        <p class="section-label" id="move-label">Move this session</p>
-        <div class="daypick dated" id="move-days" role="group" aria-labelledby="move-label"></div>
-        <p class="hint" id="move-hint"></p>
-      </section>
+        <section id="move-section">
+          <p class="group-title" id="move-label">Move this session</p>
+          <div class="card">
+            <div class="daypick dated" id="move-days"></div>
+            <p class="hint" id="move-hint"></p>
+          </div>
+        </section>
 
-      <div class="sheet-actions">
-        <button type="button" class="text-btn danger" id="sheet-delete">Delete</button>
-        <span></span>
-        <button type="button" class="text-btn" id="sheet-cancel">Cancel</button>
-        <button type="submit" class="solid-btn">Save</button>
+        <p class="group-title">Routine</p>
+        <div class="group">
+          <div class="cell name-cell">
+            <button type="button" class="emoji-btn" id="emoji-btn" aria-label="Choose emoji"></button>
+            <input id="f-name" type="text" placeholder="Name, e.g. Morning walk" maxlength="60" required>
+          </div>
+          <div class="emoji-grid" id="emoji-grid" hidden></div>
+          <div class="cell colors" id="colors" role="radiogroup" aria-label="Color"></div>
+        </div>
+
+        <p class="group-title">Repeat</p>
+        <div class="card">
+          <div class="presets" id="presets"></div>
+          <div class="daypick" id="f-days" role="group" aria-label="Repeat on"></div>
+        </div>
+
+        <p class="group-title">Time of day</p>
+        <div class="segmented time-seg" id="time-seg"></div>
+
+        <div class="group danger-group" id="delete-group">
+          <button type="button" class="cell link danger center" id="sheet-delete">Delete Routine</button>
+        </div>
       </div>
     </form>
   </dialog>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
 
   <script src="app.js"></script>
 </body>

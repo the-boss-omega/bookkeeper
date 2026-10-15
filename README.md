@@ -1,17 +1,24 @@
 # Routines
 
-A calm, minimal tracker for your daily routines.
+A simple, beautiful routine tracker with an iPhone-style design.
 
-- Choose which days of the week each routine repeats on
-- Move a single week's session to another day. Only that week changes, not the usual schedule
-- Mark each day's routine as done, not done, or not needed (not needed doesn't break your streak)
-- Check off routines each day, with a progress ring and a week view you can page through
-- Tap a past day to fill in something you forgot
-- Streaks count scheduled sessions in a row
-- Works offline and installs on your phone's home screen (PWA)
-- Light and dark mode
-- Your data stays in your browser (`localStorage`). Use **Export / Import** to back it up or move it to another device.
+**Today**
+- Routines grouped by morning, afternoon, evening and anytime, each with its own emoji and color
+- Tap the circle to mark a day ✅ done, ❌ not done, or 💤 not needed (not needed never breaks a streak)
+- Progress ring, perfect-day streak, and a week strip you can page through
+- Choose which weekdays each routine repeats on, and move one week's session to another day without changing the usual schedule
+- 🎉 Confetti when everything is done
 
+**Stats**
+- Perfect-day streak, total completions, 30-day completion rate, best streak
+- Completion chart by week, month or year, with change vs. the previous period
+- 17-week heatmap, best and toughest weekday, and per-routine rates and streaks
+
+**Settings**
+- Light / dark / automatic theme, week start day, celebrations and haptics
+- Export / import backups, erase all data
+
+Works offline and installs on your phone's home screen (PWA). Your data stays in your browser (`localStorage`).
 Plain HTML, CSS and JavaScript. No build step, no dependencies, no server.
 
 ## Host it for free (GitHub Pages)
