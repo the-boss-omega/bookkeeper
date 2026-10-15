@@ -2,6 +2,8 @@ const STORAGE_KEY = "routines-v1";
 const SUGGESTIONS = ["Drink water", "Stretch", "Read 10 pages", "Walk outside", "Journal", "No phone in bed"];
 const FLAME = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 1-3.5s.5 2 2 2.5C10 8 12 2 12 2z"/></svg>';
 const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const CROSS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+const DASH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12h10"/></svg>';
 const DOTS = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
 const RING_LENGTH = 2 * Math.PI * 28;
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Sunday, like Date#getDay
@@ -15,7 +17,7 @@ const sheet = $("sheet");
 //   id, name,
 //   days:  [0-6, ...]                         weekdays it repeats on
 //   moves: { "YYYY-MM-DD": "YYYY-MM-DD" }     one week's session moved from its usual day to another
-//   done:  ["YYYY-MM-DD", ...]                dates it was completed
+//   status: { "YYYY-MM-DD": "done" | "missed" | "skip" }   how each day went; "skip" = not needed
 // }
 let routines = load();
 let today = dayKey(new Date());
@@ -34,7 +36,10 @@ function normalize(r) {
     name: String(r.name),
     days: Array.isArray(r.days) && r.days.length ? r.days : [...ALL_DAYS],
     moves: r.moves && typeof r.moves === "object" ? r.moves : {},
-    done: Array.isArray(r.done) ? r.done : [],
+    status:
+      r.status && typeof r.status === "object"
+        ? r.status
+        : Object.fromEntries((Array.isArray(r.done) ? r.done : []).map((d) => [d, "done"])),
   };
 }
 
@@ -111,26 +116,42 @@ function movedFrom(r, key) {
   return Object.keys(r.moves).find((from) => r.moves[from] === key && from !== key);
 }
 
+const statusOf = (r, key) => r.status[key] || null;
+
+function setStatus(r, key, value) {
+  if (value) r.status[key] = value;
+  else delete r.status[key];
+}
+
 function scheduleText(r) {
   if (r.days.length === 7) return "Every day";
   return WEEK_ORDER.filter((d) => r.days.includes(d)).map((d) => dayName(d)).join(" · ");
 }
 
-// Sessions completed in a row, ending today. Today doesn't break it while still open.
+// Sessions completed in a row, ending today. "Not needed" days are passed over,
+// and today doesn't break the streak while it's still open.
 function streak(r) {
-  const done = new Set(r.done);
   let count = 0;
   for (let i = 0; i < 730; i++) {
     const key = shiftDays(today, -i);
-    if (done.has(key)) count++;
-    else if (i > 0 && occursOn(r, key)) break;
+    const st = statusOf(r, key);
+    if (st === "done") count++;
+    else if (st === "skip") continue;
+    else if (st === "missed" || (i > 0 && occursOn(r, key))) break;
   }
   return count;
 }
 
+// "Not needed" sessions don't count toward the day's total.
 function dayStats(key) {
   const scheduled = routines.filter((r) => occursOn(r, key));
-  return { total: scheduled.length, done: scheduled.filter((r) => r.done.includes(key)).length };
+  const needed = scheduled.filter((r) => statusOf(r, key) !== "skip");
+  return {
+    scheduled: scheduled.length,
+    total: needed.length,
+    done: needed.filter((r) => statusOf(r, key) === "done").length,
+    skipped: scheduled.length - needed.length,
+  };
 }
 
 /* ---------- actions ---------- */
@@ -138,14 +159,21 @@ function dayStats(key) {
 function addRoutine(name, days = ALL_DAYS) {
   name = name.trim();
   if (!name) return;
-  routines.push({ id: crypto.randomUUID(), name, days: [...days].sort(), moves: {}, done: [] });
+  routines.push({ id: crypto.randomUUID(), name, days: [...days].sort(), moves: {}, status: {} });
   save();
   render();
 }
 
-function toggle(id) {
+// Tapping the circle cycles: open → done → not done → not needed → open.
+// Future days can only be marked "not needed".
+const CYCLE = [null, "done", "missed", "skip"];
+const STATUS_LABEL = { done: "Done", missed: "Not done", skip: "Not needed" };
+
+function cycle(id) {
   const r = routines.find((r) => r.id === id);
-  r.done = r.done.includes(selected) ? r.done.filter((d) => d !== selected) : [...r.done, selected];
+  const order = selected > today ? [null, "skip"] : CYCLE;
+  const next = order[(order.indexOf(statusOf(r, selected)) + 1) % order.length];
+  setStatus(r, selected, next);
   save();
   render({ animateList: false });
 }
@@ -156,8 +184,10 @@ function moveOccurrence(r, from, to) {
   const origin = movedFrom(r, from) ?? from;
   if (r.days.includes(weekday(origin)) && origin === to) delete r.moves[origin];
   else r.moves[origin] = to;
-  // A completed session keeps its checkmark, unless it moves into the future.
-  if (r.done.includes(from)) r.done = [...r.done.filter((d) => d !== from), ...(to <= today ? [to] : [])];
+  // The day's status moves with the session, except done/not done can't land in the future.
+  const st = statusOf(r, from);
+  setStatus(r, from, null);
+  if (st && (to <= today || st === "skip")) setStatus(r, to, st);
 }
 
 /* ---------- rendering ---------- */
@@ -176,7 +206,7 @@ function renderHeader() {
   $("date").textContent = fmt(selected, { weekday: "long", month: "long", day: "numeric" });
   $("title").textContent = greeting();
 
-  const { total, done } = dayStats(selected);
+  const { total, done, scheduled, skipped } = dayStats(selected);
   const fraction = total ? done / total : 0;
   $("ring-fill").style.strokeDashoffset = RING_LENGTH * (1 - fraction);
   $("ring").classList.toggle("zero", done === 0);
@@ -184,10 +214,12 @@ function renderHeader() {
   $("ring").setAttribute("aria-label", `${done} of ${total} routines done`);
 
   let status = "";
-  if (routines.length && !total) status = "Nothing scheduled. Enjoy the rest.";
-  else if (total && selected > today) status = `${total} planned`;
-  else if (total && done === total) status = selected === today ? "All done for today. Nicely done ✦" : "Everything was done this day ✦";
-  else if (total) status = `${total - done} to go`;
+  if (routines.length && !scheduled) status = "Nothing scheduled. Enjoy the rest.";
+  else if (!total && skipped) status = "Nothing needed this day.";
+  else if (selected > today) status = `${total} planned`;
+  else if (done === total) status = selected === today ? "All done for today. Nicely done ✦" : "Everything was done this day ✦";
+  else status = `${total - done} to go`;
+  if (status && skipped && total) status += ` · ${skipped} not needed`;
   $("status").textContent = status;
 }
 
@@ -220,20 +252,19 @@ function renderWeek() {
 }
 
 function routineRow(r, i, animate, scheduled) {
-  const isDone = scheduled && r.done.includes(selected);
+  const st = scheduled ? statusOf(r, selected) : null;
   const li = document.createElement("li");
-  li.className = "item" + (isDone ? " done" : "") + (scheduled ? "" : " off");
+  li.className = "item" + (st ? ` ${st}` : "") + (scheduled ? "" : " off");
   if (animate) li.style.setProperty("--i", i);
   else li.style.animation = "none";
 
   if (scheduled) {
     const check = document.createElement("button");
     check.className = "check";
-    check.innerHTML = CHECK;
-    check.disabled = selected > today;
-    check.setAttribute("aria-pressed", isDone);
-    check.setAttribute("aria-label", `${r.name}: ${isDone ? "done" : "not done"}`);
-    check.onclick = () => toggle(r.id);
+    check.innerHTML = st === "missed" ? CROSS : st === "skip" ? DASH : CHECK;
+    check.setAttribute("aria-label", `${r.name}: ${STATUS_LABEL[st] || "open"}. Tap to change.`);
+    check.title = STATUS_LABEL[st] || "Tap to mark";
+    check.onclick = () => cycle(r.id);
     li.append(check);
   }
 
@@ -245,7 +276,11 @@ function routineRow(r, i, animate, scheduled) {
   const sub = document.createElement("span");
   sub.className = "sub";
   const from = scheduled && movedFrom(r, selected);
-  sub.textContent = from ? `Moved from ${fmt(from, { weekday: "long" })}` : r.days.length < 7 ? scheduleText(r) : "";
+  const notes = [];
+  if (st === "missed" || st === "skip") notes.push(STATUS_LABEL[st]);
+  if (from) notes.push(`Moved from ${fmt(from, { weekday: "long" })}`);
+  else if (r.days.length < 7) notes.push(scheduleText(r));
+  sub.textContent = notes.join(" · ");
   if (from) sub.classList.add("moved");
   info.append(name);
   if (sub.textContent) info.append(sub);
@@ -350,7 +385,7 @@ for (const s of SUGGESTIONS) {
 function openSheet(id) {
   const r = routines.find((r) => r.id === id);
   const occurs = occursOn(r, selected);
-  editing = { id, days: [...r.days], moveTo: selected };
+  editing = { id, days: [...r.days], moveTo: selected, status: statusOf(r, selected) };
   $("sheet-name").value = r.name;
 
   dayPicker($("sheet-days"), {
@@ -358,10 +393,17 @@ function openSheet(id) {
     onToggle: (d) => (editing.days = toggleIn(editing.days, d)),
   });
 
-  $("move-section").hidden = !occurs;
+  $("status-section").hidden = !occurs;
   if (occurs) {
-    const week = weekOf(selected);
-    const keyFor = (d) => week.find((k) => weekday(k) === d);
+    $("status-label").textContent = selected === today ? "Today" : fmt(selected, { weekday: "long", month: "short", day: "numeric" });
+    renderStatusPicker();
+  }
+
+  const week = weekOf(selected);
+  const keyFor = (d) => week.find((k) => weekday(k) === d);
+  const canMove = occurs && week.some((k) => !occursOn(r, k));
+  $("move-section").hidden = !canMove;
+  if (canMove) {
     const from = movedFrom(r, selected);
     $("move-label").textContent =
       `Move ${selected === today ? "today's" : fmt(selected, { weekday: "long" }) + "'s"} session`;
@@ -381,11 +423,30 @@ function openSheet(id) {
   sheet.showModal();
 }
 
+function renderStatusPicker() {
+  const box = $("status-pick");
+  box.replaceChildren();
+  for (const value of ["done", "missed", "skip"]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = value;
+    b.textContent = STATUS_LABEL[value];
+    b.disabled = selected > today && value !== "skip";
+    b.setAttribute("aria-pressed", editing.status === value);
+    b.onclick = () => {
+      editing.status = editing.status === value ? null : value; // tap again to clear
+      renderStatusPicker();
+    };
+    box.append(b);
+  }
+}
+
 $("sheet-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const r = routines.find((r) => r.id === editing.id);
   r.name = $("sheet-name").value.trim() || r.name;
 
+  if (occursOn(r, selected)) setStatus(r, selected, editing.status);
   if (editing.moveTo !== selected) moveOccurrence(r, selected, editing.moveTo);
 
   const daysChanged = editing.days.join() !== [...r.days].sort().join();
@@ -441,7 +502,7 @@ $("import").addEventListener("change", async (e) => {
   if (!file) return;
   try {
     const data = JSON.parse(await file.text());
-    const valid = Array.isArray(data) && data.every((r) => r && typeof r.name === "string" && Array.isArray(r.done));
+    const valid = Array.isArray(data) && data.every((r) => r && typeof r.name === "string" && (Array.isArray(r.done) || typeof r.status === "object"));
     if (!valid) throw new Error();
     if (!confirm(`Replace your current routines with ${data.length} from this file?`)) return;
     routines = data.map(normalize);

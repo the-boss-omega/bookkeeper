@@ -164,12 +164,22 @@ h1 {
 @keyframes pop { 50% { transform: scale(1.12); } }
 
 .info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* Not done */
+.item.missed .check { border-color: var(--danger); }
+.item.missed .check svg { stroke: var(--danger); }
+.item.missed .check path, .item.skip .check path { stroke-dashoffset: 0; }
+.item.missed .sub { color: var(--danger); }
+/* Not needed */
+.item.skip { opacity: 0.6; box-shadow: none; }
+.item.skip .check { border-style: dashed; border-color: var(--muted); }
+.item.skip .check svg { stroke: var(--muted); }
+.item.skip .name { color: var(--muted); }
+
 .name { overflow-wrap: anywhere; font-weight: 500; transition: color 0.25s; }
 .item.done .name { color: var(--muted); }
 .sub { font-size: 12px; color: var(--muted); }
 .sub.moved { color: #b7791f; }
 @media (prefers-color-scheme: dark) { .sub.moved { color: #e0a54b; } }
-.check:disabled { opacity: 0.4; cursor: default; }
 
 .item.off { background: transparent; box-shadow: none; border: 1px dashed var(--faint); padding-left: 18px; }
 .item.off .name { color: var(--muted); font-weight: 400; }
@@ -295,6 +305,19 @@ h1 {
   font: 400 30px/1.2 var(--serif);
 }
 .sheet .daypick { margin-bottom: 20px; }
+.status-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 20px; }
+.status-pick button {
+  padding: 10px 0;
+  border-radius: 12px;
+  background: var(--faint);
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.status-pick button:active { transform: scale(0.96); }
+.status-pick button:disabled { opacity: 0.35; cursor: not-allowed; }
+.status-pick .done[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.status-pick .missed[aria-pressed="true"] { background: var(--danger); color: #fff; }
+.status-pick .skip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .sheet .hint { margin: -12px 4px 20px; font-size: 12px; color: var(--muted); }
 .sheet-actions { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; }
 .text-btn { padding: 10px 14px; border-radius: 999px; font-weight: 500; color: var(--muted); }
