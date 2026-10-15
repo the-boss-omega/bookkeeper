@@ -88,7 +88,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
-  margin: 32px 0 28px;
+  margin: 0 0 28px;
 }
 .day {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -111,6 +111,28 @@ h1 {
 .day.selected .day-dot { background: var(--accent); }
 .day.selected .day-dot:not(.part):not(.full) { background: color-mix(in srgb, var(--bg) 25%, transparent); }
 .day.selected .day-dot.part { opacity: 0.6; }
+
+.day.today:not(.selected) .day-num { color: var(--accent); }
+.day-dot.none { visibility: hidden; }
+
+.week-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 32px 4px 8px;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+}
+.week-nav { display: flex; align-items: center; gap: 2px; }
+.nav-btn {
+  width: 32px; height: 32px; display: grid; place-items: center;
+  border-radius: 50%; color: var(--muted);
+  transition: background 0.2s, color 0.2s;
+}
+.nav-btn:hover { background: var(--faint); color: var(--ink); }
+.nav-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pill {
+  padding: 4px 12px; margin-right: 4px;
+  border-radius: 999px; background: var(--faint);
+  font-size: 12px; font-weight: 600; color: var(--ink);
+}
 
 .status { margin: 0 0 12px 4px; font-size: 13px; color: var(--muted); min-height: 20px; }
 
@@ -141,8 +163,22 @@ h1 {
 .item.done .check path { stroke-dashoffset: 0; }
 @keyframes pop { 50% { transform: scale(1.12); } }
 
-.name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; transition: color 0.25s; }
+.info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.name { overflow-wrap: anywhere; font-weight: 500; transition: color 0.25s; }
 .item.done .name { color: var(--muted); }
+.sub { font-size: 12px; color: var(--muted); }
+.sub.moved { color: #b7791f; }
+@media (prefers-color-scheme: dark) { .sub.moved { color: #e0a54b; } }
+.check:disabled { opacity: 0.4; cursor: default; }
+
+.item.off { background: transparent; box-shadow: none; border: 1px dashed var(--faint); padding-left: 18px; }
+.item.off .name { color: var(--muted); font-weight: 400; }
+.others { margin-top: 28px; }
+.section-label {
+  margin: 0 0 10px 4px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted);
+}
 
 .streak {
   display: flex; align-items: center; gap: 3px;
@@ -152,18 +188,30 @@ h1 {
 .streak svg { width: 13px; height: 13px; fill: currentColor; }
 .streak.hot { color: #d9822b; }
 
-.del {
-  width: 28px; height: 28px; flex: none;
+.more {
+  width: 32px; height: 32px; flex: none;
   display: grid; place-items: center;
   border-radius: 50%;
   color: var(--muted);
-  opacity: 0.35;
-  transition: opacity 0.2s, color 0.2s, background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
-.del svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-.item:hover .del, .del:focus-visible { opacity: 1; }
-.del:hover { color: var(--danger); background: var(--faint); }
-@media (hover: none) { .del { opacity: 0.5; } }
+.more svg { width: 18px; height: 18px; fill: currentColor; }
+.more:hover { background: var(--faint); color: var(--ink); }
+
+/* Day pickers */
+.daypick { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.daypick button {
+  padding: 8px 0;
+  border-radius: 10px;
+  background: var(--faint);
+  font-size: 12px; font-weight: 600;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.daypick button:active { transform: scale(0.94); }
+.daypick button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.daypick button:disabled { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; }
+.daypick.dated button { font-size: 11px; padding: 8px 0; line-height: 1.3; }
 
 /* Empty state */
 .empty { text-align: center; padding: 40px 8px; }
@@ -194,15 +242,18 @@ h1 {
   position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   width: min(440px, calc(100% - 32px));
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 6px 6px 20px;
+  padding: 6px;
   background: color-mix(in srgb, var(--surface) 85%, transparent);
   backdrop-filter: blur(16px) saturate(1.4);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid var(--faint);
-  border-radius: 999px;
+  border-radius: 28px;
   box-shadow: 0 8px 32px rgb(0 0 0 / 0.08);
 }
+.composer-days { display: none; padding: 10px 8px 6px; }
+.composer.open .composer-days { display: block; animation: rise 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.composer-days .section-label { margin-left: 0; }
+.composer-row { display: flex; align-items: center; gap: 8px; padding-left: 14px; }
 .composer input {
   flex: 1; min-width: 0;
   border: 0; background: none; outline: none;
@@ -210,15 +261,47 @@ h1 {
   font-size: 16px;
 }
 .composer input::placeholder { color: var(--muted); }
-.composer button {
+.add-btn {
   width: 40px; height: 40px; flex: none;
   display: grid; place-items: center;
   border-radius: 50%;
   background: var(--ink); color: var(--bg);
   transition: transform 0.15s;
 }
-.composer button:active { transform: scale(0.92); }
-.composer svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.add-btn:active { transform: scale(0.92); }
+.add-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+
+/* Edit sheet */
+.sheet {
+  width: min(440px, calc(100% - 24px));
+  max-height: calc(100dvh - 48px);
+  margin: auto auto calc(12px + env(safe-area-inset-bottom));
+  padding: 22px 20px 18px;
+  border: 0;
+  border-radius: 28px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.18);
+}
+.sheet[open] { animation: sheet-in 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(24px); } }
+.sheet::backdrop { background: rgb(20 18 16 / 0.35); backdrop-filter: blur(2px); }
+@media (min-width: 600px) { .sheet { margin: auto; } }
+.sheet-name {
+  width: 100%;
+  margin: 0 0 20px;
+  padding: 0 4px;
+  border: 0; background: none; outline: none;
+  font: 400 30px/1.2 var(--serif);
+}
+.sheet .daypick { margin-bottom: 20px; }
+.sheet .hint { margin: -12px 4px 20px; font-size: 12px; color: var(--muted); }
+.sheet-actions { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; }
+.text-btn { padding: 10px 14px; border-radius: 999px; font-weight: 500; color: var(--muted); }
+.text-btn:hover { background: var(--faint); color: var(--ink); }
+.text-btn.danger { color: var(--danger); padding-left: 4px; }
+.text-btn.danger:hover { background: none; text-decoration: underline; }
+.solid-btn { padding: 10px 20px; border-radius: 999px; background: var(--ink); color: var(--bg); font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

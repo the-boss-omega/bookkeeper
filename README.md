@@ -2,9 +2,11 @@
 
 A calm, minimal tracker for your daily routines.
 
-- Check off routines each day, with a progress ring and a 7-day strip
+- Choose which days of the week each routine repeats on
+- Move a single week's session to another day. Only that week changes, not the usual schedule
+- Check off routines each day, with a progress ring and a week view you can page through
 - Tap a past day to fill in something you forgot
-- Streaks for each routine
+- Streaks count scheduled sessions in a row
 - Works offline and installs on your phone's home screen (PWA)
 - Light and dark mode
 - Your data stays in your browser (`localStorage`). Use **Export / Import** to back it up or move it to another device.

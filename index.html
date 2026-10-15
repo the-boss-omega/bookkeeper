@@ -34,11 +34,28 @@
       </div>
     </header>
 
+    <div class="week-head">
+      <span id="week-label">This week</span>
+      <div class="week-nav">
+        <button type="button" class="pill" id="today-btn" hidden>Today</button>
+        <button type="button" class="nav-btn" id="prev-week" aria-label="Previous week">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+        <button type="button" class="nav-btn" id="next-week" aria-label="Next week">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
     <nav class="week" id="week" aria-label="Choose a day"></nav>
 
     <p class="status" id="status"></p>
 
     <ul class="list" id="list"></ul>
+
+    <section class="others" id="others-wrap" hidden>
+      <p class="section-label">Not on this day</p>
+      <ul class="list" id="others"></ul>
+    </section>
 
     <section class="empty" id="empty" hidden>
       <p class="empty-title">Start with one <em>small</em> thing.</p>
@@ -54,11 +71,39 @@
   </main>
 
   <form class="composer" id="add-form" autocomplete="off">
-    <input id="add-input" type="text" placeholder="New routine…" maxlength="60" aria-label="New routine" required>
-    <button type="submit" aria-label="Add routine">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
+    <div class="composer-days">
+      <p class="section-label">Repeats on</p>
+      <div class="daypick" id="add-days" role="group" aria-label="Repeats on"></div>
+    </div>
+    <div class="composer-row">
+      <input id="add-input" type="text" placeholder="New routine…" maxlength="60" aria-label="New routine" required>
+      <button type="submit" class="add-btn" aria-label="Add routine">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
   </form>
+
+  <dialog class="sheet" id="sheet" aria-labelledby="sheet-name">
+    <form id="sheet-form" autocomplete="off">
+      <input class="sheet-name" id="sheet-name" type="text" maxlength="60" aria-label="Routine name" required>
+
+      <p class="section-label">Repeats on</p>
+      <div class="daypick" id="sheet-days" role="group" aria-label="Repeats on"></div>
+
+      <section id="move-section">
+        <p class="section-label" id="move-label">Move this session</p>
+        <div class="daypick dated" id="move-days" role="group" aria-labelledby="move-label"></div>
+        <p class="hint" id="move-hint"></p>
+      </section>
+
+      <div class="sheet-actions">
+        <button type="button" class="text-btn danger" id="sheet-delete">Delete</button>
+        <span></span>
+        <button type="button" class="text-btn" id="sheet-cancel">Cancel</button>
+        <button type="submit" class="solid-btn">Save</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="app.js"></script>
 </body>
