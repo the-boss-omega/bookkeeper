@@ -503,6 +503,22 @@ h1 { margin: 2px 0 0; font-size: 34px; line-height: 41px; font-weight: 700; lett
 .pct .fill { stroke: var(--c); stroke-linecap: round; }
 .pct span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 11px var(--round); }
 
+/* Sync */
+.pill-btn {
+  flex: none;
+  padding: 7px 14px; border-radius: 999px;
+  background: var(--tint); color: #fff;
+  font-size: 15px; font-weight: 600;
+}
+.avatar {
+  width: 36px; height: 36px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #5be37d, #21b04b); color: #fff;
+  font-weight: 700;
+}
+#sync-status:empty { display: none; }
+
 /* Tab bar */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;

@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <header class="navbar" id="navbar">
@@ -127,6 +127,23 @@
         <h1>Settings</h1>
       </div>
 
+      <div id="sync-section" hidden>
+        <p class="group-title">☁️ Sync</p>
+        <div class="group">
+          <div class="cell" id="sync-signed-out">
+            <span class="grow">Keep your phone and computer in sync</span>
+            <button type="button" class="pill-btn" id="sync-signin">Sign in with Google</button>
+          </div>
+          <div class="cell" id="sync-signed-in" hidden>
+            <span class="avatar" id="sync-avatar" aria-hidden="true"></span>
+            <span class="info"><span class="name" id="sync-name"></span><span class="sub" id="sync-email"></span></span>
+            <button type="button" class="bar-btn" id="sync-signout">Sign out</button>
+          </div>
+        </div>
+        <p class="footnote" id="sync-status"></p>
+        <p class="footnote">Sign in with the same Google account on every device. Changes merge automatically, even ones made offline.</p>
+      </div>
+
       <p class="group-title">Appearance</p>
       <div class="group">
         <div class="cell stack"><span>🎨 Theme</span><div class="segmented" id="theme-seg"></div></div>
@@ -225,6 +242,7 @@
   <div class="toast" id="toast" role="status" hidden></div>
   <div class="confetti" id="confetti" aria-hidden="true"></div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
+  <script type="module" src="sync.js?v=6"></script>
 </body>
 </html>
