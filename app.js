@@ -1,5 +1,6 @@
 const STORAGE_KEY = "routines-v1";
 const SETTINGS_KEY = "routines-settings";
+const DELETED_KEY = "routines-deleted";
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Sunday, like Date#getDay
 const RING_LENGTH = 2 * Math.PI * 27;
 
@@ -91,6 +92,9 @@ function normalize(r, i = 0) {
     moves: r.moves && typeof r.moves === "object" ? r.moves : {},
     status,
     created: r.created || (first && first < today ? first : today),
+    // For syncing: when the routine's details last changed, and when each day's status was set.
+    updatedAt: Number(r.updatedAt) || 0,
+    stamps: r.stamps && typeof r.stamps === "object" ? r.stamps : {},
   };
 }
 
@@ -103,15 +107,28 @@ function load() {
   }
 }
 
-function save() {
+// Deleted routine ids → when they were deleted, so a delete on one device reaches the others.
+let deleted = loadDeleted();
+
+function loadDeleted() {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function save({ sync = true } = {}) {
   startCache.clear();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(routines));
+    localStorage.setItem(DELETED_KEY, JSON.stringify(deleted));
   } catch {}
+  if (sync) window.RoutinesSync?.push();
 }
 
 function loadSettings() {
-  const defaults = { theme: "system", weekStart: "auto", confetti: true, haptics: true };
+  const defaults = { theme: "system", weekStart: "auto", confetti: true, haptics: true, updatedAt: 0 };
   try {
     return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
   } catch {
@@ -119,7 +136,9 @@ function loadSettings() {
   }
 }
 
-function saveSettings() {
+function saveSettings({ sync = true } = {}) {
+  if (sync) settings.updatedAt = Date.now();
+  if (sync) window.RoutinesSync?.push();
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {}
@@ -167,7 +186,15 @@ function localeWeekInfo() {
 function weekStartDay() {
   if (settings.weekStart === "sun") return 0;
   if (settings.weekStart === "mon") return 1;
-  return (localeWeekInfo()?.firstDay ?? 1) % 7;
+  const firstDay = localeWeekInfo()?.firstDay;
+  if (firstDay) return firstDay % 7;
+  // Some browsers (e.g. older iPhone Safari) don't report it; fall back by region.
+  const region = (navigator.language.split("-")[1] || "").toUpperCase();
+  const sundayFirst = ["IL", "US", "CA", "MX", "BR", "JP", "KR", "TW", "HK", "IN", "PH", "ZA", "SA", "AU", "AR", "CO", "PE", "VE", "GT", "PR", "PA", "DO", "SV", "HN", "NI", "BZ", "JM", "TT", "BS", "BW", "ZW", "KE", "ET", "PK", "TH", "KH", "LA", "MM", "MO", "ID", "SG", "NP", "BT", "BD", "YE", "MT", "WS", "UM", "VI", "GU", "AS", "MH", "PY"];
+  if (sundayFirst.includes(region)) return 0;
+  // No region, but a Hebrew/English-US style language: Sunday is the safer default.
+  if (!region && ["he", "iw", "en", "ja", "ko", "pt", "ar"].includes(navigator.language.split("-")[0])) return 0;
+  return 1;
 }
 
 function weekendDays() {
@@ -197,6 +224,7 @@ const statusOf = (r, key) => r.status[key] || null;
 function setStatus(r, key, value) {
   if (value) r.status[key] = value;
   else delete r.status[key];
+  r.stamps[key] = Date.now();
 }
 
 function scheduleText(days) {
@@ -337,16 +365,18 @@ function moveOccurrence(r, from, to) {
 }
 
 function addRoutine(fields) {
-  routines.push(normalize({ ...fields, id: crypto.randomUUID(), created: today, status: {}, moves: {} }, routines.length));
+  routines.push(normalize({ ...fields, id: crypto.randomUUID(), created: today, status: {}, moves: {}, updatedAt: Date.now() }, routines.length));
   save();
 }
 
 function removeRoutine(id) {
   const index = routines.findIndex((r) => r.id === id);
   const [removed] = routines.splice(index, 1);
+  deleted[id] = Date.now();
   save();
   renderAll();
   toast(`Deleted ${removed.emoji} ${removed.name}`, "Undo", () => {
+    removed.updatedAt = Date.now(); // newer than the delete, so it wins when syncing
     routines.splice(index, 0, removed);
     save();
     renderAll();
@@ -843,7 +873,7 @@ $("sheet-form").addEventListener("submit", (e) => {
   } else {
     const r = routines.find((r) => r.id === editing.id);
     const daysChanged = fields.days.join() !== [...r.days].sort().join();
-    Object.assign(r, fields);
+    Object.assign(r, fields, { updatedAt: Date.now() });
     if (!$("status-section").hidden) setStatus(r, selected, editing.status);
     if (editing.moveTo && editing.moveTo !== selected) moveOccurrence(r, selected, editing.moveTo);
     if (daysChanged) {
@@ -931,7 +961,11 @@ $("import").addEventListener("change", async (e) => {
     const valid = Array.isArray(data) && data.every((r) => r && typeof r.name === "string" && (Array.isArray(r.done) || typeof r.status === "object"));
     if (!valid) throw new Error();
     if (!confirm(`Replace your current routines with ${data.length} from this file?`)) return;
-    routines = data.map(normalize);
+    const now = Date.now();
+    const imported = data.map((r, i) => ({ ...normalize(r, i), updatedAt: now }));
+    for (const r of routines) if (!imported.some((x) => x.id === r.id)) deleted[r.id] = now;
+    for (const r of imported) delete deleted[r.id];
+    routines = imported;
     save();
     renderAll();
     toast(`📥 Imported ${data.length} routines`);
@@ -943,6 +977,8 @@ $("import").addEventListener("change", async (e) => {
 $("reset").addEventListener("click", () => {
   if (!routines.length) return toast("Nothing to erase");
   if (!confirm("Erase all routines and their history? This can't be undone.")) return;
+  const now = Date.now();
+  for (const r of routines) deleted[r.id] = now;
   routines = [];
   save();
   renderAll();
@@ -1037,6 +1073,28 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   }
   navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
 }
+
+/* ---------- sync hooks (used by sync.js) ---------- */
+
+window.RoutinesApp = {
+  getState: () => ({ routines, deleted, settings }),
+  // Replace local data with a merged copy from the cloud, without echoing it back.
+  setState(next) {
+    routines = next.routines.map(normalize);
+    deleted = next.deleted;
+    const weekChanged = next.settings.weekStart !== settings.weekStart;
+    settings = { ...settings, ...next.settings };
+    save({ sync: false });
+    saveSettings({ sync: false });
+    applyTheme();
+    if (weekChanged) {
+      WEEK_START = weekStartDay();
+      WEEK_ORDER = ALL_DAYS.map((i) => (i + WEEK_START) % 7);
+    }
+    if (!sheet.open) renderAll();
+  },
+  rerender: () => tab === "settings" && renderSettings(),
+};
 
 applyTheme();
 renderAll();
