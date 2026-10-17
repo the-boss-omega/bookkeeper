@@ -58,15 +58,18 @@ if (firebaseConfig && app) start();
 
 async function start() {
   $("sync-section").hidden = false;
-  const [{ initializeApp }, authLib, db] = await Promise.all([
+  const libs = await Promise.all([
     import(`${SDK}/firebase-app.js`),
     import(`${SDK}/firebase-auth.js`),
     import(`${SDK}/firebase-firestore.js`),
-  ]).catch(() => {
-    setStatus("⚠️ Can't reach the sync service right now");
-    return [];
-  });
-  if (!initializeApp) return;
+  ]).catch(() => null);
+  if (!libs) {
+    // Offline or blocked: the app keeps working locally and syncs next time it opens online.
+    $("sync-signed-out").hidden = true;
+    setStatus("⚠️ Can't reach the sync service right now. Your changes are saved on this device.");
+    return;
+  }
+  const [{ initializeApp }, authLib, db] = libs;
 
   const fb = initializeApp(firebaseConfig);
   const auth = authLib.getAuth(fb);
